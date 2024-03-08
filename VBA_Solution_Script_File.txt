@@ -1,0 +1,165 @@
+VBA Solution
+
+Sub AnalyzeStockData()
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim ticker As String
+    Dim openingPrice As Double
+    Dim closingPrice As Double
+    Dim yearlyChange As Double
+    Dim percentChange As Double
+    Dim totalVolume As Double
+    Dim outputRow As Long
+    Dim greatestIncrease As Double
+    Dim greatestDecrease As Double
+    Dim greatestVolume As Double
+    Dim greatestIncreaseTicker As String
+    Dim greatestDecreaseTicker As String
+    Dim greatestVolumeTicker As String
+    Dim j As Integer
+    Dim i As Long
+    Dim Start As Long
+    Dim change As Double
+    Dim wb As Workbook
+    Dim maxK As Double
+    Dim minK As Double
+    Dim maxL As Double
+    Dim symbolMaxK As String
+    Dim symbolMinK As String
+    Dim symbolMaxL As String
+    
+    Set wb = ThisWorkbook
+    
+    ' Loop through all sheets in the workbook
+    For Each ws In wb.Sheets(Array("2018", "2019", "2020"))
+        If Not ws Is Nothing Then ' Check if worksheet object is set
+            ' Find the last row of data
+            lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+            
+            ' Initialize output row
+            outputRow = 2
+            
+            ' Reset variables
+            greatestIncrease = 0
+            greatestDecrease = 0
+            greatestVolume = 0
+            greatestIncreaseTicker = ""
+            greatestDecreaseTicker = ""
+            greatestVolumeTicker = ""
+            j = 0
+            
+            ' Loop through each row of data
+            For i = 2 To lastRow
+                ' Initialize Start for each new ticker symbol
+                If ws.Cells(i, 1).Value <> ws.Cells(i - 1, 1).Value Then
+                    Start = i
+                    totalVolume = 0 ' Reset total volume for new ticker symbol
+                End If
+                
+                If ws.Cells(i + 1, 1).Value <> ws.Cells(i, 1).Value Then
+                    totalVolume = totalVolume + ws.Cells(i, 7).Value ' Accumulate total volume
+                    
+                    If totalVolume = 0 Then
+                        ws.Range("I" & 2 + j).Value = ws.Cells(i, 1).Value
+                        ws.Range("J" & 2 + j).Value = 0
+                        ws.Range("K" & 2 + j).Value = 0
+                        ws.Range("L" & 2 + j).Value = 0
+                    Else
+                        If ws.Cells(Start, 3).Value = 0 Then
+                            For int_value = Start To i
+                                If ws.Cells(int_value, 3).Value <> 0 Then
+                                    Start = int_value
+                                    Exit For
+                                End If
+                            Next int_value
+                        End If
+                        
+                        change = (ws.Cells(i, 6).Value - ws.Cells(Start, 3).Value)
+                        percentChange = change / ws.Cells(Start, 3).Value
+                        
+                        Start = i + 1
+                        ws.Range("I" & 2 + j).Value = ws.Cells(i, 1).Value
+                        ws.Range("J" & 2 + j).Value = change
+                        ws.Range("J" & 2 + j).NumberFormat = "0.00%"
+                        ws.Range("K" & 2 + j).Value = percentChange
+                        ws.Range("K" & 2 + j).NumberFormat = "0.00%"
+                        ws.Range("L" & 2 + j).Value = totalVolume
+                        
+                        ' Color positives green and negatives red
+                        Select Case change
+                            Case Is > 0
+                                ws.Range("J" & 2 + j).Interior.ColorIndex = 4
+                            Case Is < 0
+                                ws.Range("J" & 2 + j).Interior.ColorIndex = 3
+                            Case Else
+                                ws.Range("J" & 2 + j).Interior.ColorIndex = 0
+                        End Select
+                    End If
+                    
+                    ' Reset variables for new stock ticker
+                    totalVolume = 0
+                    change = 0
+                    j = j + 1
+                    Days = 0
+                Else
+                    totalVolume = totalVolume + ws.Cells(i, 7).Value ' Accumulate total volume
+                End If
+                
+                ' Update greatest increase, decrease, and volume
+                If ws.Cells(i, 6).Value > greatestIncrease Then
+                    greatestIncrease = ws.Cells(i, 6).Value
+                    greatestIncreaseTicker = ws.Cells(i, 1).Value
+                End If
+                
+                If ws.Cells(i, 6).Value < greatestDecrease Then
+                    greatestDecrease = ws.Cells(i, 6).Value
+                    greatestDecreaseTicker = ws.Cells(i, 1).Value
+                End If
+                
+                If ws.Cells(i, 7).Value > greatestVolume Then
+                    greatestVolume = ws.Cells(i, 7).Value
+                    greatestVolumeTicker = ws.Cells(i, 1).Value
+                End If
+            Next i
+            
+            ' Find the last row in column K
+            lastRow = ws.Cells(ws.Rows.Count, "K").End(xlUp).Row
+            
+            ' Initialize maxK and minK with the first value in column K
+            maxK = ws.Cells(2, "K").Value
+            minK = ws.Cells(2, "K").Value
+            maxL = ws.Cells(2, "L").Value ' Assuming column L starts from row 2
+            
+            ' Initialize symbol variables
+            symbolMaxK = ws.Cells(2, "I").Value
+            symbolMinK = ws.Cells(2, "I").Value
+            symbolMaxL = ws.Cells(2, "I").Value
+            
+            ' Loop through column K to find the highest and lowest values and associated symbols
+            For i = 2 To lastRow
+                If ws.Cells(i, "K").Value > maxK Then
+                    maxK = ws.Cells(i, "K").Value
+                    symbolMaxK = ws.Cells(i, "I").Value
+                End If
+                If ws.Cells(i, "K").Value < minK Then
+                    minK = ws.Cells(i, "K").Value
+                    symbolMinK = ws.Cells(i, "I").Value
+                End If
+                If ws.Cells(i, "L").Value > maxL Then
+                    maxL = ws.Cells(i, "L").Value
+                    symbolMaxL = ws.Cells(i, "I").Value
+                End If
+            Next i
+            
+            ' Output the symbols associated with maxK, minK, and maxL to cells (P, 2), (P, 3), and (P, 4)
+            ws.Cells(2, "P").Value = symbolMaxK
+            ws.Cells(3, "P").Value = symbolMinK
+            ws.Cells(4, "P").Value = symbolMaxL
+            
+            ' Output the results of greatest increase, decrease, and volume to cells Q5, Q6, and Q7 on the current sheet
+            ws.Cells(5, "Q").Value = greatestIncreaseTicker & ": " & Format(greatestIncrease, "0.00%")
+            ws.Cells(6, "Q").Value = greatestDecreaseTicker & ": " & Format(greatestDecrease, "0.00%")
+            ws.Cells(7, "Q").Value = greatestVolumeTicker & ": " & greatestVolume
+        End If
+    Next ws
+End Sub
